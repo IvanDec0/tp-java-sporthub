@@ -100,7 +100,12 @@
             <artifactId>stripe-java</artifactId>
             <version>30.1.0</version>
         </dependency>
-
+        <!-- AWS SDK for Cloudflare R2 -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.25.66</version>
+        </dependency>
     </dependencies>
 
     <build>
