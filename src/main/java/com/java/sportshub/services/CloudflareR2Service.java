@@ -204,7 +204,9 @@ public class CloudflareR2Service {
 
   private String buildProductImageKey(Long productId, String originalFilename) {
     String sanitized = sanitizeFilename(originalFilename);
-    return PRODUCTS_FOLDER + "/" + productId + "/" + UUID.randomUUID() + sanitized;
+    String name = extractName(originalFilename);
+    String extension = extractExtension(originalFilename);
+    return PRODUCTS_FOLDER + "/" + productId + "/" + UUID.randomUUID() + extension;
   }
 
   private String sanitizeFilename(String originalFilename) {
@@ -214,7 +216,7 @@ public class CloudflareR2Service {
 
     String cleanFilename = StringUtils.getFilename(originalFilename);
 
-      String normalized = cleanFilename.replaceAll("[^a-zA-Z0-9.\\-_]", "_");
+    String normalized = cleanFilename.replaceAll("[^a-zA-Z0-9.\\-_]", "_");
     int extensionIndex = normalized.lastIndexOf('.');
 
     if (extensionIndex == -1) {
@@ -229,5 +231,23 @@ public class CloudflareR2Service {
     }
 
     return "-" + name + extension;
+  }
+
+  private String extractExtension(String originalFilename) {
+    if (originalFilename == null || originalFilename.isBlank()) {
+      return "";
+    }
+
+    String cleanFilename = StringUtils.getFilename(originalFilename);
+    return cleanFilename.substring(cleanFilename.lastIndexOf('.'));
+  }
+
+  private String extractName(String originalFilename) {
+    if (originalFilename == null || originalFilename.isBlank()) {
+      return "";
+    }
+
+    String cleanFilename = StringUtils.getFilename(originalFilename);
+    return cleanFilename.substring(0, cleanFilename.lastIndexOf('.'));
   }
 }

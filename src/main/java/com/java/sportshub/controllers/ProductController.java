@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,7 +14,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.java.sportshub.dtos.ProductDTO;
 import com.java.sportshub.mappers.ProductMapper;
@@ -69,8 +72,23 @@ public class ProductController {
     }
 
     @DeleteMapping("/{id}/coupons/{couponId}")
-    public ResponseEntity<ProductDTO> detachCoupon(@PathVariable("id") Long id, @PathVariable("couponId") Long couponId) {
+    public ResponseEntity<ProductDTO> detachCoupon(@PathVariable("id") Long id,
+            @PathVariable("couponId") Long couponId) {
         Product updated = productService.detachCoupon(id, couponId);
+        return ResponseEntity.ok(ProductMapper.toDTO(updated));
+    }
+
+    @PostMapping(value = "/{id}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ProductDTO> uploadProductImage(
+            @PathVariable("id") Long id,
+            @RequestParam("file") MultipartFile image) {
+        Product updated = productService.uploadProductImage(id, image);
+        return ResponseEntity.ok(ProductMapper.toDTO(updated));
+    }
+
+    @DeleteMapping("/{id}/image")
+    public ResponseEntity<ProductDTO> deleteProductImage(@PathVariable("id") Long id) {
+        Product updated = productService.deleteProductImage(id);
         return ResponseEntity.ok(ProductMapper.toDTO(updated));
     }
 }

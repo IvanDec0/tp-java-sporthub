@@ -2,16 +2,17 @@ package com.java.sportshub.services;
 
 import java.util.List;
 
-import com.java.sportshub.models.Coupon;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
-import com.java.sportshub.daos.ProductDAO;
 import com.java.sportshub.daos.CouponDAO;
+import com.java.sportshub.daos.ProductDAO;
 import com.java.sportshub.exceptions.AttributeExistsException;
 import com.java.sportshub.exceptions.ResourceNotFoundException;
 import com.java.sportshub.exceptions.ValidationException;
+import com.java.sportshub.models.Coupon;
 import com.java.sportshub.models.Product;
 
 @Service
@@ -22,6 +23,9 @@ public class ProductService {
 
     @Autowired
     private CouponDAO couponDAO;
+
+    @Autowired
+    private CloudflareR2Service cloudflareR2Service;
 
     public List<Product> getAllProducts() {
         return productDAO.findAll();
@@ -97,6 +101,55 @@ public class ProductService {
         if (product.getCoupons() != null) {
             product.getCoupons().removeIf(c -> c.getId().equals(couponId));
         }
+        return productDAO.save(product);
+    }
+
+    @Transactional
+    public Product uploadProductImage(Long productId, MultipartFile image) {
+        if (image == null || image.isEmpty()) {
+            throw new ValidationException("image", "Image file is required");
+        }
+
+        if (image.getSize() > 10 * 1024 * 1024) {
+            throw new ValidationException("image", "Image file must be less than 10MB");
+        }
+
+        if (!image.getContentType().startsWith("image/")) {
+            throw new ValidationException("image", "Image file must be an image");
+        }
+
+        if (!image.getContentType().equals("image/jpeg") && !image.getContentType().equals("image/png")
+                && !image.getContentType().equals("image/gif") && !image.getContentType().equals("image/webp")) {
+            throw new ValidationException("image", "Image file must be a JPEG, PNG, GIF, or WEBP image");
+        }
+
+        Product product = getProductById(productId);
+
+        String existingImageKey = product.getImageKey();
+        if (existingImageKey != null && !existingImageKey.isBlank()) {
+            cloudflareR2Service.deleteObject(existingImageKey);
+        }
+
+        String objectKey = cloudflareR2Service.uploadProductImage(productId, image);
+        product.setImageKey(objectKey);
+        product.setImageUrl(cloudflareR2Service.resolvePublicUrl(objectKey));
+
+        return productDAO.save(product);
+    }
+
+    @Transactional
+    public Product deleteProductImage(Long productId) {
+        Product product = getProductById(productId);
+
+        String existingImageKey = product.getImageKey();
+        if (existingImageKey == null || existingImageKey.isBlank()) {
+            throw new ResourceNotFoundException("Product Image", "productId", productId);
+        }
+
+        cloudflareR2Service.deleteObject(existingImageKey);
+        product.setImageKey(null);
+        product.setImageUrl(null);
+
         return productDAO.save(product);
     }
 
