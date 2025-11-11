@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.java.sportshub.daos.CartDAO;
 import com.java.sportshub.daos.CartItemDAO;
+import com.java.sportshub.daos.CouponDAO;
 import com.java.sportshub.daos.InventoryDAO;
 import com.java.sportshub.daos.StoreDAO;
 import com.java.sportshub.daos.UserDAO;
@@ -17,6 +18,7 @@ import com.java.sportshub.exceptions.InsufficientStockException;
 import com.java.sportshub.exceptions.ResourceNotFoundException;
 import com.java.sportshub.models.Cart;
 import com.java.sportshub.models.CartItem;
+import com.java.sportshub.models.Coupon;
 import com.java.sportshub.models.Inventory;
 import com.java.sportshub.models.Store;
 import com.java.sportshub.models.User;
@@ -43,10 +45,13 @@ public class CartService {
     private PaymentService paymentService;
 
     @Autowired
-    private com.java.sportshub.daos.CouponDAO couponDAO;
+    private CouponDAO couponDAO;
 
     @Autowired
     private PricingService pricingService;
+
+    @Autowired
+    private EmailService emailService;
 
     public List<Cart> getAllCarts() {
         return cartDAO.findAll();
@@ -138,7 +143,7 @@ public class CartService {
         cart.setStatus("Completed");
         cartDAO.save(cart);
 
-        // TODO: Enviar email de confirmación
+        emailService.sendCartPurchaseEmail(cart);
 
         return cart;
     }
@@ -146,13 +151,14 @@ public class CartService {
     @Transactional
     public Cart applyCartCoupon(Long cartId, String code) {
         Cart cart = getCartById(cartId);
-        com.java.sportshub.models.Coupon coupon = couponDAO.findByCode(code)
+        Coupon coupon = couponDAO.findByCode(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Coupon", "code", code));
 
         if (coupon.getIsActive() == null || !coupon.getIsActive()) {
             throw new IllegalArgumentException("Coupon is not active");
         }
-        if (coupon.getExpiryDate() != null && coupon.getExpiryDate().toLocalDate().isBefore(java.time.LocalDate.now())) {
+        if (coupon.getExpiryDate() != null
+                && coupon.getExpiryDate().toLocalDate().isBefore(java.time.LocalDate.now())) {
             throw new IllegalArgumentException("Coupon has expired");
         }
 

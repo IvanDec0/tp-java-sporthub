@@ -1,15 +1,16 @@
 package com.java.sportshub.services;
 
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.java.sportshub.daos.CouponDAO;
 import com.java.sportshub.exceptions.AttributeExistsException;
 import com.java.sportshub.exceptions.ResourceNotFoundException;
 import com.java.sportshub.exceptions.ValidationException;
 import com.java.sportshub.models.Coupon;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 public class CouponService {
@@ -77,7 +78,7 @@ public class CouponService {
 
         boolean hasPercent = coupon.getDiscountPercent() != null && coupon.getDiscountPercent() > 0;
 
-        if (!hasPercent ) {
+        if (!hasPercent) {
             throw new ValidationException("discount", "discountPercent must be set and greater than 0");
         }
     }

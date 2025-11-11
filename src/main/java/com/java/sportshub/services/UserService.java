@@ -30,6 +30,9 @@ public class UserService {
     @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
+    @Autowired
+    private EmailService emailService;
+
     public List<User> getAllUsers() {
         return userDAO.findAll();
     }
@@ -79,7 +82,9 @@ public class UserService {
         user.setPhoneNumber(dto.getPhoneNumber());
         user.setRole(defaultRole);
 
-        return userDAO.save(user);
+        User savedUser = userDAO.save(user);
+        emailService.sendUserRegistrationEmail(savedUser);
+        return savedUser;
     }
 
     @Transactional

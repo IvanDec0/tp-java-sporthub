@@ -68,7 +68,6 @@ public class CartItemService {
     return cartItem;
   }
 
-
   private void calculateSubtotal(CartItem cartItem) {
     // TODO: Implementar lógica compleja de cálculo
     // - Si es venta: precio x cantidad
