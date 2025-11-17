@@ -1,11 +1,13 @@
 package com.java.sportshub.daos;
 
 import com.java.sportshub.models.Coupon;
+import com.java.sportshub.models.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -18,4 +20,8 @@ public interface CouponDAO extends JpaRepository<Coupon, Long> {
     @Modifying
     @Query("UPDATE Coupon c SET c.isActive = false WHERE c.id = ?1")
     void deleteById(long id);
+
+    @Override
+    @Query("SELECT c FROM Coupon c WHERE c.isActive = true")
+    List<Coupon> findAll();
 }

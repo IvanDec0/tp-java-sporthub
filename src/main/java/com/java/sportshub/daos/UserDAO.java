@@ -1,8 +1,11 @@
 package com.java.sportshub.daos;
 
+import java.util.List;
 import java.util.Optional;
 
+import com.java.sportshub.models.Store;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.java.sportshub.models.User;
@@ -18,5 +21,9 @@ public interface UserDAO extends JpaRepository<User, Long> {
     Optional<User> findByEmailAndIdNot(String email, Long id);
 
     Optional<User> findByPhoneNumberAndIdNot(String phoneNumber, Long id);
+
+    @Override
+    @Query("SELECT u FROM User u WHERE u.isActive = true")
+    List<User> findAll();
 
 }

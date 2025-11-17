@@ -1,9 +1,6 @@
 package com.java.sportshub.daos;
 
-import com.java.sportshub.models.Product;
-import com.java.sportshub.models.Review;
-import com.java.sportshub.models.Store;
-import com.java.sportshub.models.User;
+import com.java.sportshub.models.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -30,4 +27,8 @@ public interface ReviewDAO extends JpaRepository<Review, Long> {
 
   @Query("SELECT AVG(r.rating) FROM Review r WHERE r.store.id = ?1 AND r.isActive = true")
   Double getAverageRatingByStoreId(Long storeId);
+
+  @Override
+  @Query("SELECT r FROM Review r WHERE r.isActive = true")
+  List<Review> findAll();
 }

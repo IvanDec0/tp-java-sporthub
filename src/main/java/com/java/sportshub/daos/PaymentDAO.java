@@ -1,5 +1,6 @@
 package com.java.sportshub.daos;
 
+import com.java.sportshub.models.Category;
 import com.java.sportshub.models.Payment;
 import com.java.sportshub.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,4 +22,9 @@ public interface PaymentDAO extends JpaRepository<Payment, Long> {
 
   @Query("SELECT p FROM Payment p WHERE p.cart.id = ?1")
   Payment findByCartId(Long cartId);
+
+  @Override
+  @Query("SELECT p FROM Payment p WHERE p.isActive = true")
+  List<Payment> findAll();
+
 }
