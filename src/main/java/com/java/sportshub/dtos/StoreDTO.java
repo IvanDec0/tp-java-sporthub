@@ -16,6 +16,7 @@ public class StoreDTO {
   private String phoneNumber;
   private String email;
   private Address address;
+  private Long ownerId;
 
   public StoreDTO(Store store) {
     this.id = store.getId();
@@ -23,5 +24,6 @@ public class StoreDTO {
     this.phoneNumber = store.getPhoneNumber();
     this.email = store.getEmail();
     this.address = store.getAddress();
+    this.ownerId = store.getOwner() != null ? store.getOwner().getId() : null;
   }
 }

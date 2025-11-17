@@ -19,7 +19,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.java.sportshub.dtos.ReviewDTO;
 import com.java.sportshub.mappers.ReviewMapper;
+import com.java.sportshub.middlewares.AuthenticatedUser;
+import com.java.sportshub.middlewares.RequiredRoles;
 import com.java.sportshub.models.Review;
+import com.java.sportshub.models.User;
 import com.java.sportshub.services.ReviewService;
 
 @RestController
@@ -79,25 +82,30 @@ public class ReviewController {
   }
 
   @PostMapping
-  public ResponseEntity<ReviewDTO> createReview(@RequestBody ReviewDTO reviewDTO) {
+  @RequiredRoles({ "USER", "ADMIN" })
+  public ResponseEntity<ReviewDTO> createReview(@AuthenticatedUser User authenticatedUser,
+      @RequestBody ReviewDTO reviewDTO) {
     Review review = ReviewMapper.toEntity(reviewDTO);
-    Review createdReview = reviewService.createReview(review);
+    Review createdReview = reviewService.createReview(review, authenticatedUser);
     return ResponseEntity.status(HttpStatus.CREATED).body(ReviewMapper.toDTO(createdReview));
   }
 
   @PutMapping("/{id}")
+  @RequiredRoles({ "USER", "ADMIN" })
   public ResponseEntity<ReviewDTO> updateReview(
       @PathVariable("id") Long id,
+      @AuthenticatedUser User authenticatedUser,
       @RequestBody ReviewDTO reviewDTO) {
     Review review = ReviewMapper.toEntity(reviewDTO);
-    Review updatedReview = reviewService.updateReview(id, review, review.getUser().getId());
+    Review updatedReview = reviewService.updateReview(id, review, authenticatedUser);
     return ResponseEntity.ok(ReviewMapper.toDTO(updatedReview));
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<ReviewDTO> deleteReview(@PathVariable("id") Long id) {
-    // TODO: Esto falta implementar userID
-    Review review = reviewService.deleteReview(id, id);
+  @RequiredRoles({ "USER", "ADMIN" })
+  public ResponseEntity<ReviewDTO> deleteReview(@PathVariable("id") Long id,
+      @AuthenticatedUser User authenticatedUser) {
+    Review review = reviewService.deleteReview(id, authenticatedUser);
     return ResponseEntity.ok(ReviewMapper.toDTO(review));
   }
 }

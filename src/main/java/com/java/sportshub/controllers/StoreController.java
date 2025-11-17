@@ -18,7 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.java.sportshub.dtos.StoreDTO;
 import com.java.sportshub.mappers.StoreMapper;
+import com.java.sportshub.middlewares.AuthenticatedUser;
+import com.java.sportshub.middlewares.RequiredRoles;
 import com.java.sportshub.models.Store;
+import com.java.sportshub.models.User;
 import com.java.sportshub.services.StoreService;
 
 @RestController
@@ -44,22 +47,30 @@ public class StoreController {
   }
 
   @PostMapping
-  public ResponseEntity<StoreDTO> createStore(@RequestBody Store store) {
-    Store createdStore = storeService.createStore(store);
+  @RequiredRoles({ "USER", "ADMIN" })
+  public ResponseEntity<StoreDTO> createStore(
+      @AuthenticatedUser User authenticatedUser,
+      @RequestBody StoreDTO storeDTO) {
+    Store createdStore = storeService.createStore(StoreMapper.toEntity(storeDTO), authenticatedUser);
     return ResponseEntity.status(HttpStatus.CREATED).body(StoreMapper.toDTO(createdStore));
   }
 
   @PutMapping("/{id}")
+  @RequiredRoles({ "USER", "ADMIN" })
   public ResponseEntity<StoreDTO> updateStore(
       @PathVariable Long id,
-      @RequestBody Store store) {
-    Store updatedStore = storeService.updateStore(id, store);
+      @AuthenticatedUser User authenticatedUser,
+      @RequestBody StoreDTO storeDTO) {
+    Store updatedStore = storeService.updateStore(id, StoreMapper.toEntity(storeDTO), authenticatedUser);
     return ResponseEntity.ok(StoreMapper.toDTO(updatedStore));
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<Map<String, String>> deleteStore(@PathVariable Long id) {
-    storeService.deleteStore(id);
+  @RequiredRoles({ "USER", "ADMIN" })
+  public ResponseEntity<Map<String, String>> deleteStore(
+      @PathVariable Long id,
+      @AuthenticatedUser User authenticatedUser) {
+    storeService.deleteStore(id, authenticatedUser);
     Map<String, String> response = new HashMap<>();
     response.put("message", "Store deleted successfully");
     return ResponseEntity.ok(response);

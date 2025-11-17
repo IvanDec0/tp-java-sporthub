@@ -58,7 +58,6 @@ public class PaymentService {
     return paymentDAO.findByCartId(cartId);
   }
 
-
   @Transactional
   public Payment createPayment(Payment payment) throws StripeException {
     // Validar que el carrito exista y esté activo
@@ -73,14 +72,13 @@ public class PaymentService {
       throw new BusinessRuleException("Cart must have items to create a payment");
     }
 
-
-  // Recompute cart total considering coupons
-  double computedTotal = pricingService.computeCartTotal(cart.getId());
-  if (Math.abs(payment.getAmount() - computedTotal) > 0.001) {
-    throw new BusinessRuleException(
-      String.format("Payment amount (%.2f) must match computed cart total (%.2f)",
-        payment.getAmount(), computedTotal));
-  }
+    // Recompute cart total considering coupons
+    double computedTotal = pricingService.computeCartTotal(cart.getId());
+    if (Math.abs(payment.getAmount() - computedTotal) > 0.001) {
+      throw new BusinessRuleException(
+          String.format("Payment amount (%.2f) must match computed cart total (%.2f)",
+              payment.getAmount(), computedTotal));
+    }
 
     // Persist applied coupons summary for auditing
     try {
@@ -114,7 +112,6 @@ public class PaymentService {
     paymentDAO.save(payment);
     return payment;
   }
-
 
   @Transactional
   public Payment processPayment(Long paymentId) throws StripeException {
@@ -154,12 +151,10 @@ public class PaymentService {
     return payment;
   }
 
-
   public boolean isPaymentCompleted(Long cartId) {
     Payment payment = paymentDAO.findByCartId(cartId);
     return payment != null && "Completed".equals(payment.getPaymentStatus());
   }
-
 
   public void validateCompletedPayment(Long cartId) {
     Payment payment = paymentDAO.findByCartId(cartId);
@@ -232,7 +227,6 @@ public class PaymentService {
 
     return payment;
   }
-
 
   @Transactional
   public void handleStripeWebhook(String paymentIntentId, String status) {

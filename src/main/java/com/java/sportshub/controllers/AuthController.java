@@ -24,7 +24,8 @@ import jakarta.servlet.http.HttpServletResponse;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final JwtUtil jwtUtil = new JwtUtil();
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @Autowired
     private UserService userService;
@@ -50,8 +51,18 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserDTO> register(@RequestBody UserDTO dto) {
+    public ResponseEntity<UserDTO> register(@RequestBody UserDTO dto, HttpServletResponse response) {
         User newUser = userService.registerUser(dto);
+
+        String token = jwtUtil.generateToken(newUser.getId().toString());
+
+        Cookie cookie = new Cookie("token", token);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(false);
+        cookie.setPath("/");
+        cookie.setMaxAge(3600); // 1 hour
+        response.addCookie(cookie);
+
         return ResponseEntity.status(HttpStatus.CREATED).body(UserMapper.toUserDTO(newUser));
     }
 }

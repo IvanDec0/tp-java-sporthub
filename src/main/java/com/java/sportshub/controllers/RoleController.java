@@ -17,11 +17,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.java.sportshub.dtos.RoleDTO;
 import com.java.sportshub.mappers.RoleMapper;
+import com.java.sportshub.middlewares.RequiredRoles;
 import com.java.sportshub.models.Role;
 import com.java.sportshub.services.RoleService;
 
 @RestController
 @RequestMapping("/api/roles")
+@RequiredRoles({ "ADMIN" })
 public class RoleController {
 
     @Autowired

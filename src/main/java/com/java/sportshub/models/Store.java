@@ -3,6 +3,8 @@ package com.java.sportshub.models;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -19,6 +21,10 @@ public class Store extends Generic {
 
     @Column(unique = true)
     private String email;
+
+    @ManyToOne
+    @JoinColumn(name = "owner_id")
+    private User owner;
 
     /*
      * @ManyToOne

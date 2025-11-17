@@ -39,8 +39,7 @@ public class EmailService {
     try {
       mailSender.send(message);
     } catch (MailException ex) {
-      // TODO: Manejar el error de envío de email. No es esencial para el sistema.
-      // Podriamos agregar logs o retries como mejora.
+      System.out.println("Error al enviar email: " + ex.getMessage());
     }
   }
 

@@ -10,6 +10,7 @@ import com.java.sportshub.daos.ReviewDAO;
 import com.java.sportshub.exceptions.ResourceNotFoundException;
 import com.java.sportshub.exceptions.UnauthorizedException;
 import com.java.sportshub.models.Review;
+import com.java.sportshub.models.User;
 
 @Service
 public class ReviewService {
@@ -45,7 +46,7 @@ public class ReviewService {
   }
 
   @Transactional
-  public Review createReview(Review review) {
+  public Review createReview(Review review, User user) {
     // TODO: Validar que el usuario haya realizado una compra/alquiler del producto
     // antes de permitir la reseña
     // TODO: Validar que el rating esté entre 1 y 5
@@ -55,17 +56,17 @@ public class ReviewService {
       throw new IllegalArgumentException("Rating must be between 1 and 5");
     }
 
+    review.setUser(user);
+
     reviewDAO.save(review);
     return review;
   }
 
   @Transactional
-  public Review updateReview(Long id, Review reviewDetails, Long userId) {
+  public Review updateReview(Long id, Review reviewDetails, User user) {
     Review review = getReviewById(id);
 
-    if (review.getUser().getId() != userId) {
-      throw new UnauthorizedException("Review", "update");
-    }
+    ensureOwnership(review, user, "update");
 
     if (reviewDetails.getRating() != null) {
       if (reviewDetails.getRating() < 1 || reviewDetails.getRating() > 5) {
@@ -83,15 +84,19 @@ public class ReviewService {
   }
 
   @Transactional
-  public Review deleteReview(Long id, Long userId) {
+  public Review deleteReview(Long id, User user) {
     Review review = getReviewById(id);
 
-    if (review.getUser().getId() != userId) {
-      throw new UnauthorizedException("Review", "delete");
-    }
+    ensureOwnership(review, user, "delete");
 
     review.setIsActive(false);
     reviewDAO.save(review);
     return review;
+  }
+
+  private void ensureOwnership(Review review, User user, String action) {
+    if (user == null || review.getUser() == null || !review.getUser().getId().equals(user.getId())) {
+      throw new UnauthorizedException("Review", action);
+    }
   }
 }

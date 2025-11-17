@@ -9,8 +9,10 @@ import org.springframework.transaction.annotation.Transactional;
 import com.java.sportshub.daos.StoreDAO;
 import com.java.sportshub.exceptions.AttributeExistsException;
 import com.java.sportshub.exceptions.ResourceNotFoundException;
+import com.java.sportshub.exceptions.UnauthorizedException;
 import com.java.sportshub.exceptions.ValidationException;
 import com.java.sportshub.models.Store;
+import com.java.sportshub.models.User;
 
 @Service
 public class StoreService {
@@ -28,7 +30,11 @@ public class StoreService {
     }
 
     @Transactional
-    public Store createStore(Store store) {
+    public Store createStore(Store store, User owner) {
+        if (owner == null) {
+            throw new UnauthorizedException("Store", "create");
+        }
+
         validateStore(store);
 
         if (storeDAO.existsByName(store.getName())) {
@@ -39,12 +45,16 @@ public class StoreService {
             throw new AttributeExistsException("Store", "email", store.getEmail());
         }
 
+        store.setOwner(owner);
+
         return storeDAO.save(store);
     }
 
     @Transactional
-    public Store updateStore(Long id, Store storeDetails) {
+    public Store updateStore(Long id, Store storeDetails, User owner) {
         Store store = getStoreById(id);
+
+        ensureOwnership(store, owner, "update");
 
         if (storeDetails.getName() != null) {
             // Verificar si el nuevo nombre ya existe en otra tienda
@@ -76,8 +86,9 @@ public class StoreService {
     }
 
     @Transactional
-    public void deleteStore(Long id) {
+    public void deleteStore(Long id, User owner) {
         Store store = getStoreById(id);
+        ensureOwnership(store, owner, "delete");
         store.setIsActive(false);
         storeDAO.save(store);
     }
@@ -88,6 +99,12 @@ public class StoreService {
         }
         if (store.getEmail() != null && !store.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
             throw new ValidationException("email", "Email format is invalid");
+        }
+    }
+
+    private void ensureOwnership(Store store, User owner, String action) {
+        if (owner == null || store.getOwner() == null || !store.getOwner().getId().equals(owner.getId())) {
+            throw new UnauthorizedException("Store", action);
         }
     }
 }

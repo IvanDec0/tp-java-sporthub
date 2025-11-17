@@ -1,9 +1,8 @@
 package com.java.sportshub.controllers;
 
-import com.java.sportshub.dtos.CouponDTO;
-import com.java.sportshub.mappers.CouponMapper;
-import com.java.sportshub.models.Coupon;
-import com.java.sportshub.services.CouponService;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,8 +15,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import com.java.sportshub.dtos.CouponDTO;
+import com.java.sportshub.mappers.CouponMapper;
+import com.java.sportshub.middlewares.RequiredRoles;
+import com.java.sportshub.models.Coupon;
+import com.java.sportshub.services.CouponService;
 
 @RestController
 @RequestMapping("/api/coupons")
@@ -42,18 +44,21 @@ public class CouponController {
     }
 
     @PostMapping
+    @RequiredRoles({ "ADMIN" })
     public ResponseEntity<CouponDTO> create(@RequestBody Coupon coupon) {
         Coupon created = couponService.createCoupon(coupon);
         return ResponseEntity.status(HttpStatus.CREATED).body(CouponMapper.toDTO(created));
     }
 
     @PutMapping("/{id}")
+    @RequiredRoles({ "ADMIN" })
     public ResponseEntity<CouponDTO> update(@PathVariable Long id, @RequestBody Coupon couponDetails) {
         Coupon updated = couponService.updateCoupon(id, couponDetails);
         return ResponseEntity.ok(CouponMapper.toDTO(updated));
     }
 
     @DeleteMapping("/{id}")
+    @RequiredRoles({ "ADMIN" })
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         couponService.deleteCoupon(id);
         return ResponseEntity.noContent().build();

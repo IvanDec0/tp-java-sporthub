@@ -1,11 +1,19 @@
 package com.java.sportshub.utils;
 
-import io.jsonwebtoken.*;
-
-import javax.crypto.SecretKey;
 import java.security.Key;
 import java.util.Date;
 
+import javax.crypto.SecretKey;
+
+import org.springframework.stereotype.Component;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.JwtParser;
+import io.jsonwebtoken.Jwts;
+
+@Component
 public class JwtUtil {
     private static final Key key = Jwts.SIG.HS512.key().build(); // Change from HS256 to HS512 for better security
     private static final long EXPIRATION_TIME = 1000 * 60 * 60 * 24; // 1 día

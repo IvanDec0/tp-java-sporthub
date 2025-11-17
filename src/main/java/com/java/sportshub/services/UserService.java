@@ -105,6 +105,67 @@ public class UserService {
         userDAO.save(user);
     }
 
+    @Transactional
+    public User updateOwnProfile(Long id, UserDTO dto) {
+        if (dto == null) {
+            throw new ValidationException("user", "User data is required");
+        }
+
+        User user = getUserById(id);
+        boolean updated = false;
+
+        if (dto.getUserName() != null) {
+            String userName = dto.getUserName().trim();
+            if (userName.isEmpty()) {
+                throw new ValidationException("userName", "User name is required");
+            }
+            user.setUserName(userName);
+            updated = true;
+        }
+
+        if (dto.getEmail() != null) {
+            String email = dto.getEmail().trim();
+            if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+                throw new ValidationException("email", "Valid email is required");
+            }
+
+            userDAO.findByEmailAndIdNot(email, id).ifPresent(existing -> {
+                throw new AttributeExistsException("User", "email", email);
+            });
+
+            user.setEmail(email);
+            updated = true;
+        }
+
+        if (dto.getPhoneNumber() != null) {
+            String phoneNumber = dto.getPhoneNumber().trim();
+            if (phoneNumber.isEmpty()) {
+                throw new ValidationException("phoneNumber", "Phone number is required");
+            }
+
+            userDAO.findByPhoneNumberAndIdNot(phoneNumber, id).ifPresent(existing -> {
+                throw new AttributeExistsException("User", "phone number", phoneNumber);
+            });
+
+            user.setPhoneNumber(phoneNumber);
+            updated = true;
+        }
+
+        if (dto.getPassword() != null && !dto.getPassword().trim().isEmpty()) {
+            if (dto.getPassword().length() < 6) {
+                throw new ValidationException("password", "Password must be at least 6 characters");
+            }
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+            updated = true;
+        }
+
+        if (!updated) {
+            return user;
+        }
+
+        return userDAO.save(user);
+    }
+
     private void validateUserDTO(UserDTO dto) {
         if (dto.getUserName() == null || dto.getUserName().trim().isEmpty()) {
             throw new ValidationException("userName", "User name is required");
