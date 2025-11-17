@@ -5,6 +5,7 @@ import com.java.sportshub.models.User;
 
 public class UserMapper {
     public static UserDTO toUserDTO(User user) {
+        user.setPassword("********");
         return new UserDTO(user);
     }
 

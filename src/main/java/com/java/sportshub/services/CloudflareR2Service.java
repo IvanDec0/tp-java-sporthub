@@ -18,6 +18,7 @@ import com.java.sportshub.exceptions.StorageException;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
@@ -38,6 +39,7 @@ public class CloudflareR2Service {
   private final String bucketName;
   private final String publicBaseUrl;
   private final Duration defaultUploadExpiration;
+  private final Region region = Region.US_EAST_1;
 
   public CloudflareR2Service(
       @Value("${cloudflare.r2.accountId}") String accountId,
@@ -66,12 +68,14 @@ public class CloudflareR2Service {
         .endpointOverride(URI.create(endpoint))
         .credentialsProvider(StaticCredentialsProvider.create(credentials))
         .serviceConfiguration(configuration)
+        .region(region)
         .build();
 
     this.s3Presigner = S3Presigner.builder()
         .endpointOverride(URI.create(endpoint))
         .credentialsProvider(StaticCredentialsProvider.create(credentials))
         .serviceConfiguration(configuration)
+        .region(region)
         .build();
 
     this.bucketName = bucketName;
