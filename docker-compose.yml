@@ -9,6 +9,11 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/sportshub_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
       - SPRING_DATASOURCE_USERNAME=root
       - SPRING_DATASOURCE_PASSWORD=root
+      - AWS_REGION=auto
+      - CLOUDFLARE_ACCOUNT_ID=123
+      - CLOUDFLARE_ACCESS_KEY_ID=123
+      - CLOUDFLARE_SECRET_ACCESS_KEY=123
+      - CLOUDFLARE_BUCKET_NAME=123
     depends_on:
       - mysql
     networks:
