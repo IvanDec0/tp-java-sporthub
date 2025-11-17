@@ -189,7 +189,6 @@ public class CartService {
     }
 
     private void calculateTotal(Cart cart) {
-        // TODO: Sumar todos los subtotales de los CartItems activos
         List<CartItem> items = cartItemDAO.findActiveItemsByCartId(cart.getId());
         double total = items.stream()
                 .mapToDouble(item -> item.getSubtotal() != null ? item.getSubtotal() : 0.0)

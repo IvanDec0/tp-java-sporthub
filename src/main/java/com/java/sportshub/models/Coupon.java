@@ -2,6 +2,7 @@ package com.java.sportshub.models;
 
 import java.sql.Date;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

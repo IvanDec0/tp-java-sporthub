@@ -11,7 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.java.sportshub.daos.CartDAO;
+import com.java.sportshub.daos.CartItemDAO;
+import com.java.sportshub.daos.InventoryDAO;
 import com.java.sportshub.daos.PaymentDAO;
+import com.java.sportshub.daos.RentalReservationDAO;
 import com.java.sportshub.dtos.StripeChargeDTO;
 import com.java.sportshub.dtos.StripePaymentIntentDTO;
 import com.java.sportshub.dtos.StripeRefundDTO;
@@ -19,7 +22,10 @@ import com.java.sportshub.exceptions.BusinessRuleException;
 import com.java.sportshub.exceptions.InvalidOperationException;
 import com.java.sportshub.exceptions.ResourceNotFoundException;
 import com.java.sportshub.models.Cart;
+import com.java.sportshub.models.CartItem;
+import com.java.sportshub.models.Inventory;
 import com.java.sportshub.models.Payment;
+import com.java.sportshub.models.RentalReservation;
 import com.stripe.exception.StripeException;
 
 @Service
@@ -32,10 +38,22 @@ public class PaymentService {
   private CartDAO cartDAO;
 
   @Autowired
+  private CartItemDAO cartItemDAO;
+
+  @Autowired
+  private InventoryDAO inventoryDAO;
+
+  @Autowired
+  private RentalReservationDAO rentalReservationDAO;
+
+  @Autowired
   private PricingService pricingService;
 
   @Autowired
   private StripeService stripeService;
+
+  @Autowired
+  private EmailService emailService;
 
   public List<Payment> getAllPayments() {
     return paymentDAO.findAll();
@@ -219,11 +237,15 @@ public class PaymentService {
       payment.setNotes("Refunded via Stripe: " + refund.getRefundId());
     }
 
+    if (payment.getUser() == null && payment.getCart() != null && payment.getCart().getUser() != null) {
+      payment.setUser(payment.getCart().getUser());
+    }
+
     payment.setPaymentStatus("Refunded");
     paymentDAO.save(payment);
 
-    // TODO: Restaurar inventario de productos
-    // TODO: Enviar email de confirmación de reembolso
+    restoreCartAfterRefund(payment);
+    emailService.sendRefundConfirmationEmail(payment);
 
     return payment;
   }
@@ -270,5 +292,47 @@ public class PaymentService {
         (paymentMethod.equalsIgnoreCase("card") ||
             paymentMethod.equalsIgnoreCase("credit card") ||
             paymentMethod.equalsIgnoreCase("debit card"));
+  }
+
+  private void restoreCartAfterRefund(Payment payment) {
+    Cart cart = payment.getCart();
+    if (cart == null) {
+      return;
+    }
+
+    List<CartItem> items = cartItemDAO.findActiveItemsByCartId(cart.getId());
+
+    if (items.isEmpty() && cart.getItems() != null) {
+      items = cart.getItems();
+    }
+
+    for (CartItem item : items) {
+      if (item.getInventory() == null || item.getInventory().getId() == null) {
+        continue;
+      }
+
+      Inventory inventory = inventoryDAO.findById(item.getInventory().getId())
+          .orElseThrow(() -> new ResourceNotFoundException("Inventory", "id", item.getInventory().getId()));
+
+      if ("venta".equalsIgnoreCase(inventory.getTipo())) {
+        inventory.setQuantity(inventory.getQuantity() + item.getQuantity());
+        inventoryDAO.save(inventory);
+      } else if ("alquiler".equalsIgnoreCase(inventory.getTipo())) {
+        cancelRentalReservations(item);
+      }
+    }
+
+    cart.setStatus("Refunded");
+    cartDAO.save(cart);
+  }
+
+  private void cancelRentalReservations(CartItem cartItem) {
+    List<RentalReservation> reservations = rentalReservationDAO.findByCartItemIdAndIsActiveTrue(cartItem.getId());
+
+    for (RentalReservation reservation : reservations) {
+      reservation.setStatus("CANCELLED");
+      reservation.setIsActive(false);
+      rentalReservationDAO.save(reservation);
+    }
   }
 }

@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import com.java.sportshub.models.Cart;
+import com.java.sportshub.models.Payment;
 import com.java.sportshub.models.User;
 
 @Service
@@ -87,6 +88,30 @@ public class EmailService {
         cart.getTotalAmount() != null ? cart.getTotalAmount() : 0.0);
 
     sendEmail(cart.getUser().getEmail(), subject, body);
+  }
+
+  public void sendRefundConfirmationEmail(Payment payment) {
+    if (payment == null || payment.getUser() == null) {
+      return;
+    }
+
+    String subject = "Confirmacion de reembolso - #" + payment.getTransactionId();
+
+    String body = """
+        Hola %s,
+
+        Confirmamos el reembolso por %.2f correspondiente a la transaccion %s.
+        El monto sera acreditado por el mismo medio de pago utilizado.
+
+        Ante cualquier duda, por favor contactanos.
+
+        Equipo SportHub
+        """.formatted(
+        resolveUserName(payment.getUser()),
+        payment.getAmount() != null ? payment.getAmount() : 0.0,
+        payment.getTransactionId() != null ? payment.getTransactionId() : "-");
+
+    sendEmail(payment.getUser().getEmail(), subject, body);
   }
 
   private String resolveUserName(User user) {

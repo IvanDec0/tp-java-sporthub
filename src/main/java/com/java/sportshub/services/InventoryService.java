@@ -1,6 +1,9 @@
 package com.java.sportshub.services;
 
+import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -8,11 +11,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.java.sportshub.daos.InventoryDAO;
 import com.java.sportshub.daos.ProductDAO;
+import com.java.sportshub.daos.RentalReservationDAO;
 import com.java.sportshub.daos.StoreDAO;
 import com.java.sportshub.exceptions.ResourceNotFoundException;
 import com.java.sportshub.exceptions.ValidationException;
 import com.java.sportshub.models.Inventory;
 import com.java.sportshub.models.Product;
+import com.java.sportshub.models.RentalReservation;
 import com.java.sportshub.models.Store;
 
 @Service
@@ -26,6 +31,9 @@ public class InventoryService {
 
     @Autowired
     private StoreDAO storeDAO;
+
+    @Autowired
+    private RentalReservationDAO rentalReservationDAO;
 
     public List<Inventory> getAllInventory() {
         return inventoryDAO.findAll();
@@ -107,7 +115,7 @@ public class InventoryService {
     public Inventory updateStock(Long id, Integer quantity) {
         Inventory inventory = getInventoryById(id);
 
-        // TODO: Validar disponibilidad según fechas de alquiler si es tipo 'Alquiler'
+        ensureRentalCapacity(inventory, quantity);
 
         if (quantity < 0) {
             throw new IllegalArgumentException("Quantity cannot be negative");
@@ -153,6 +161,38 @@ public class InventoryService {
         String tipoLower = tipo.toLowerCase().trim();
         if (!tipoLower.equals("venta") && !tipoLower.equals("alquiler")) {
             throw new ValidationException("tipo", "Tipo must be 'venta' or 'alquiler'");
+        }
+    }
+
+    private void ensureRentalCapacity(Inventory inventory, Integer newQuantity) {
+        if (newQuantity == null || !"alquiler".equalsIgnoreCase(inventory.getTipo())) {
+            return;
+        }
+
+        List<RentalReservation> reservations = rentalReservationDAO.findByInventoryIdAndIsActiveTrue(inventory.getId());
+
+        if (reservations.isEmpty()) {
+            return;
+        }
+
+        Map<LocalDate, Long> reservedByDate = new HashMap<>();
+
+        for (RentalReservation reservation : reservations) {
+            LocalDate current = reservation.getStartDate();
+            while (!current.isAfter(reservation.getEndDate())) {
+                reservedByDate.merge(current, reservation.getQuantity().longValue(), Long::sum);
+                current = current.plusDays(1);
+            }
+        }
+
+        long maxReserved = reservedByDate.values().stream()
+                .mapToLong(Long::longValue)
+                .max()
+                .orElse(0L);
+
+        if (newQuantity.longValue() < maxReserved) {
+            throw new ValidationException("quantity",
+                    String.format("Quantity cannot be lower than existing reservations (%d)", maxReserved));
         }
     }
 }
