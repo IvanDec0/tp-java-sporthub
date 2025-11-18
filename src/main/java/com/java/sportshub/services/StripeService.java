@@ -1,5 +1,11 @@
 package com.java.sportshub.services;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
 import com.java.sportshub.dtos.StripeChargeDTO;
 import com.java.sportshub.dtos.StripePaymentIntentDTO;
 import com.java.sportshub.dtos.StripeRefundDTO;
@@ -8,12 +14,6 @@ import com.stripe.model.PaymentIntent;
 import com.stripe.model.Refund;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.stripe.param.RefundCreateParams;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import java.util.HashMap;
-import java.util.Map;
-
 
 @Service
 public class StripeService {
@@ -29,7 +29,6 @@ public class StripeService {
                 .setCurrency(currency)
                 .setDescription(description)
                 .putAllMetadata(metadata != null ? metadata : new HashMap<>())
-                .addPaymentMethodType("card")
                 .setAutomaticPaymentMethods(
                         PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
                                 .setEnabled(true)
@@ -46,7 +45,6 @@ public class StripeService {
                 paymentIntent.getStatus());
     }
 
-
     public StripePaymentIntentDTO getPaymentIntent(String paymentIntentId) throws StripeException {
         PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
 
@@ -57,7 +55,6 @@ public class StripeService {
                 paymentIntent.getCurrency(),
                 paymentIntent.getStatus());
     }
-
 
     public StripePaymentIntentDTO confirmPaymentIntent(String paymentIntentId) throws StripeException {
         PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
@@ -71,7 +68,6 @@ public class StripeService {
                 confirmedPaymentIntent.getStatus());
     }
 
-
     public StripePaymentIntentDTO cancelPaymentIntent(String paymentIntentId) throws StripeException {
         PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
         PaymentIntent cancelledPaymentIntent = paymentIntent.cancel();
@@ -83,7 +79,6 @@ public class StripeService {
                 cancelledPaymentIntent.getCurrency(),
                 cancelledPaymentIntent.getStatus());
     }
-
 
     public StripeChargeDTO getChargeFromPaymentIntent(String paymentIntentId) throws StripeException {
         // Expandir los charges para obtener la informacion completa
@@ -142,11 +137,9 @@ public class StripeService {
                 refund.getReason());
     }
 
-
     public Long convertToCents(Double amount) {
         return Math.round(amount * 100);
     }
-
 
     public Double convertFromCents(Long amountInCents) {
         return amountInCents / 100.0;

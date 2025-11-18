@@ -287,7 +287,7 @@ public class PaymentService {
     return "TXN-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
   }
 
-  private boolean isStripePaymentMethod(String paymentMethod) {
+  public boolean isStripePaymentMethod(String paymentMethod) {
     return paymentMethod != null &&
         (paymentMethod.equalsIgnoreCase("card") ||
             paymentMethod.equalsIgnoreCase("credit card") ||

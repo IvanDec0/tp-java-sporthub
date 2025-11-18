@@ -24,8 +24,8 @@ public class CartDTO {
 
   public CartDTO(Cart cart) {
     this.id = cart.getId();
-    this.userId = cart.getUser().getId();
-    this.storeId = cart.getStore().getId();
+    this.userId = cart.getUser() != null ? cart.getUser().getId() : null;
+    this.storeId = cart.getStore() != null ? cart.getStore().getId() : null;
     this.user = cart.getUser() != null ? new UserDTO(cart.getUser()) : null;
     this.store = cart.getStore() != null ? new StoreDTO(cart.getStore()) : null;
     this.status = cart.getStatus();

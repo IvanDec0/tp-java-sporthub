@@ -1,10 +1,10 @@
 package com.java.sportshub.controllers;
 
+import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -53,15 +53,22 @@ public class CartItemController {
 
   @PostMapping
   public ResponseEntity<CartItemDTO> createCartItem(@RequestBody CartItemDTO cartItemDTO) {
-    if (cartItemDTO.getCart() == null) {
-      throw new IllegalArgumentException("Cart is required");
+    if (cartItemDTO.getInventoryId() == null
+        && (cartItemDTO.getInventory() == null || cartItemDTO.getInventory().getId() == null)) {
+      throw new com.java.sportshub.exceptions.ValidationException("inventoryId", "Inventory id is required");
     }
-    if (cartItemDTO.getInventory() == null) {
-      throw new IllegalArgumentException("Inventory is required");
+    boolean hasCartId = cartItemDTO.getCartId() != null
+        || (cartItemDTO.getCart() != null && cartItemDTO.getCart().getId() != null);
+    boolean hasCartUserAndStore = cartItemDTO.getCart() != null && cartItemDTO.getCart().getUserId() != null
+        && cartItemDTO.getCart().getStoreId() != null;
+    if (!hasCartId && !hasCartUserAndStore) {
+      throw new com.java.sportshub.exceptions.ValidationException("cart",
+          "Either cartId or cart.userId & cart.storeId must be provided");
     }
     CartItem cartItem = CartItemMapper.toEntity(cartItemDTO);
     CartItem createdCartItem = cartItemService.createCartItem(cartItem);
-    return ResponseEntity.status(HttpStatus.CREATED).body(CartItemMapper.toDTO(createdCartItem));
+    return ResponseEntity.created(URI.create("/api/cart-items/" + createdCartItem.getId()))
+        .body(CartItemMapper.toDTO(createdCartItem));
   }
 
   @PutMapping("/{id}")

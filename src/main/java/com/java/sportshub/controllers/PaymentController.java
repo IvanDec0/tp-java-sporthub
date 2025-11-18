@@ -55,6 +55,25 @@ public class PaymentController {
     return ResponseEntity.ok(PaymentMapper.toDTO(payment));
   }
 
+  @GetMapping("/{id}/client-secret")
+  public ResponseEntity<?> getPaymentClientSecret(@PathVariable("id") Long id) {
+    try {
+      Payment payment = paymentService.getPaymentById(id);
+      Map<String, String> response = new HashMap<>();
+      if (payment.getStripePaymentIntentId() != null) {
+        StripePaymentIntentDTO paymentIntent = stripeService.getPaymentIntent(payment.getStripePaymentIntentId());
+        response.put("clientSecret", paymentIntent.getClientSecret());
+      } else {
+        response.put("clientSecret", null);
+      }
+      return ResponseEntity.ok(response);
+    } catch (StripeException e) {
+      Map<String, String> error = new HashMap<>();
+      error.put("error", "Stripe error: " + e.getMessage());
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+  }
+
   @GetMapping("/user/{userId}")
   public ResponseEntity<List<PaymentDTO>> getPaymentsByUserId(@PathVariable("userId") Long userId) {
     List<Payment> payments = paymentService.getPaymentsByUserId(userId);
@@ -78,7 +97,6 @@ public class PaymentController {
     Payment payment = paymentService.getPaymentByCartId(cartId);
     return ResponseEntity.ok(PaymentMapper.toDTO(payment));
   }
-
 
   @PostMapping("/create")
   public ResponseEntity<?> createPaymentFromRequest(@RequestBody CreatePaymentRequestDTO request) {
@@ -126,7 +144,6 @@ public class PaymentController {
     }
   }
 
-
   @PostMapping("/{id}/process")
   public ResponseEntity<?> processPayment(@PathVariable("id") Long id) {
     try {
@@ -138,7 +155,6 @@ public class PaymentController {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
   }
-
 
   @GetMapping("/{id}/verify")
   public ResponseEntity<?> verifyPayment(@PathVariable("id") Long id) {
@@ -170,7 +186,6 @@ public class PaymentController {
     Payment updatedPayment = paymentService.updatePayment(id, payment);
     return ResponseEntity.ok(PaymentMapper.toDTO(updatedPayment));
   }
-
 
   @PostMapping("/{id}/refund")
   public ResponseEntity<?> refundPayment(@PathVariable("id") Long id) {

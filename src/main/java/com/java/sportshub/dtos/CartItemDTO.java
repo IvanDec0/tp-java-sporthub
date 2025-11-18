@@ -27,7 +27,6 @@ public class CartItemDTO {
     this.id = cartItem.getId();
     this.cartId = cartItem.getCart() != null ? cartItem.getCart().getId() : null;
     this.inventoryId = cartItem.getInventory() != null ? cartItem.getInventory().getId() : null;
-    this.cart = cartItem.getCart() != null ? new CartDTO(cartItem.getCart()) : null;
     this.inventory = cartItem.getInventory() != null ? new InventoryDTO(cartItem.getInventory()) : null;
     this.quantity = cartItem.getQuantity();
     this.startDate = cartItem.getStartDate();
