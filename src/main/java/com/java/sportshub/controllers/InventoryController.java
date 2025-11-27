@@ -3,7 +3,10 @@ package com.java.sportshub.controllers;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.java.sportshub.daos.InventoryDAO;
+import com.java.sportshub.specifications.InventorySpecification;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -28,6 +31,33 @@ public class InventoryController {
 
   @Autowired
   private InventoryService inventoryService;
+
+
+  @Autowired
+  private InventoryDAO inventoryDAO; // Ya se que no va a aca, refactorizalo si queres
+
+
+
+  @GetMapping("filtered")
+  public ResponseEntity<List<InventoryDTO>> getFilteredInventory(
+          @RequestParam(name = "tipo", required = false) String tipo
+
+  ) {
+
+    Specification<Inventory> spec = Specification.where(null);
+
+    if (tipo!=null) {
+      spec = spec.and(InventorySpecification.isOfType(tipo));
+    }
+
+    List<Inventory> inventories = inventoryDAO.findAll(spec);
+    List<InventoryDTO> inventoryDTOs = inventories.stream()
+            .map(InventoryMapper::toDTO)
+            .collect(Collectors.toList());
+
+    return ResponseEntity.ok(inventoryDTOs);
+  }
+
 
   @GetMapping
   public ResponseEntity<List<InventoryDTO>> getAllInventory() {
