@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.java.sportshub.daos.InventoryDAO;
+import com.java.sportshub.daos.ProductDAO;
 import com.java.sportshub.specifications.InventorySpecification;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.domain.Specification;
@@ -35,19 +36,25 @@ public class InventoryController {
 
   @Autowired
   private InventoryDAO inventoryDAO; // Ya se que no va a aca, refactorizalo si queres
-
+  @Autowired
+  private ProductDAO productDAO; // Ya se que no va a aca, refactorizalo si queres
 
 
   @GetMapping("filtered")
   public ResponseEntity<List<InventoryDTO>> getFilteredInventory(
-          @RequestParam(name = "tipo", required = false) String tipo
-
+          @RequestParam(name = "tipo", required = false) String tipo,
+          @RequestParam(name = "product_id", required = false) Long productId
   ) {
 
     Specification<Inventory> spec = Specification.where(null);
 
     if (tipo!=null) {
       spec = spec.and(InventorySpecification.isOfType(tipo));
+    }
+
+    if (productId!=null) {
+      var product=productDAO.findById(productId).orElseThrow();
+      spec = spec.and(InventorySpecification.belongsToProduct(product));
     }
 
     List<Inventory> inventories = inventoryDAO.findAll(spec);
