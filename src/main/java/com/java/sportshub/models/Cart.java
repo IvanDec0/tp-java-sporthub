@@ -3,6 +3,7 @@ package com.java.sportshub.models;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Where;
 
 import java.util.List;
 
@@ -23,6 +24,7 @@ public class Cart extends Generic {
     private String status; // Active, Completed, Cancelled
 
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL)
+   @Where(clause = "is_active = true")
     private List<CartItem> items;
 
     @ManyToOne

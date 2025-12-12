@@ -112,6 +112,7 @@ public class CartItemService {
 
   @Transactional
   public CartItem deleteCartItem(Long id) {
+
     CartItem cartItem = getCartItemById(id);
     cartItem.setIsActive(false);
     cartItemDAO.save(cartItem);
