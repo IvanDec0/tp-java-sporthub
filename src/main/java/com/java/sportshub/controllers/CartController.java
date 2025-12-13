@@ -89,7 +89,7 @@ public class CartController {
 
   @PostMapping("/{id}/apply-coupon")
   public ResponseEntity<CartDTO> applyCoupon(@PathVariable("id") Long id, @RequestBody Map<String, String> body) {
-    String code = body.get("code");
+    String code = body.get("couponCode");
     Cart cart = cartService.applyCartCoupon(id, code);
     return ResponseEntity.ok(CartMapper.toDTO(cart));
   }
