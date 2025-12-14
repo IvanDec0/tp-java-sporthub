@@ -150,16 +150,39 @@ public class PaymentService {
         throw new BusinessRuleException("Payment Intent ID is missing for card payment");
       }
 
-      // Obtener el estado del payment intent desde Stripe
       StripePaymentIntentDTO paymentIntent = stripeService.getPaymentIntent(payment.getStripePaymentIntentId());
 
       if (!"succeeded".equals(paymentIntent.getStatus())) {
         throw new BusinessRuleException(
-            "Payment has not been completed in Stripe. Current status: " + paymentIntent.getStatus());
+                "Payment has not been completed in Stripe. Current status: " + paymentIntent.getStatus());
       }
 
       StripeChargeDTO charge = stripeService.getChargeFromPaymentIntent(payment.getStripePaymentIntentId());
       payment.setStripeChargeId(charge.getChargeId());
+    }
+
+    Cart cart = payment.getCart();
+    if (cart != null && cart.getItems() != null) {
+      for (CartItem item : cart.getItems()) {
+        Inventory inventory = inventoryDAO.findById(item.getInventory().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Inventory", "id", item.getInventory().getId()));
+
+        if ("venta".equalsIgnoreCase(inventory.getTipo())) {
+          int requestedQty = item.getQuantity();
+          int availableStock = inventory.getQuantity();
+
+          if (availableStock < requestedQty) {
+
+            throw new BusinessRuleException(
+                    "Stock insuficiente para el producto: " + inventory.getProduct().getName() +
+                            ". Disponible: " + availableStock + ", Solicitado: " + requestedQty);
+          }
+
+
+          inventory.setQuantity(availableStock - requestedQty);
+          inventoryDAO.save(inventory);
+        }
+      }
     }
 
     payment.setPaymentStatus("Completed");

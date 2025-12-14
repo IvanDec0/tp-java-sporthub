@@ -42,14 +42,28 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // Lista de rutas públicas
+        List<String> publicRoutes = List.of(
+                "/api/auth/login",
+                "/api/auth/register",
+                "/api/products/**",
+                "/api/categories/**",
+                "/api/stores/**",
+                "/api/inventories/**",
+                "/api/reviews/**"
+
+
+
+        );
+
         registry.addInterceptor(tokenValidationInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/auth/login", "/api/auth/register")
+                .excludePathPatterns(publicRoutes)
                 .order(0);
 
         registry.addInterceptor(roleValidationInterceptor)
                 .addPathPatterns("/api/**")
-                .excludePathPatterns("/api/auth/login", "/api/auth/register")
+                .excludePathPatterns(publicRoutes)
                 .order(1);
     }
 
