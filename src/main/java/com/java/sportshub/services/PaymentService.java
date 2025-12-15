@@ -104,7 +104,7 @@ public class PaymentService {
     } catch (Exception ex) {
     }
     boolean requiresStripeProcessing = isStripePaymentMethod(payment.getPaymentMethod());
-
+    payment.setOrderStatus("Pendiente");
     payment.setTransactionId(generateTransactionId());
     payment.setPaymentDate(LocalDateTime.now());
     payment.setPaymentStatus("Pending");
@@ -126,7 +126,6 @@ public class PaymentService {
       payment.setStripePaymentIntentId(paymentIntent.getPaymentIntentId());
       payment.setNotes("Stripe Payment Intent created: " + paymentIntent.getClientSecret());
     }
-
     paymentDAO.save(payment);
     return payment;
   }
@@ -186,6 +185,7 @@ public class PaymentService {
     }
 
     payment.setPaymentStatus("Completed");
+    payment.setOrderStatus("Recibido");
     payment.setPaymentDate(LocalDateTime.now());
 
     paymentDAO.save(payment);
@@ -304,6 +304,13 @@ public class PaymentService {
     }
 
     paymentDAO.save(payment);
+  }
+
+  @Transactional
+  public Payment updateOrderStatus(Long id, String newStatus) {
+    Payment payment = getPaymentById(id);
+    payment.setOrderStatus(newStatus);
+    return paymentDAO.save(payment);
   }
 
   private String generateTransactionId() {

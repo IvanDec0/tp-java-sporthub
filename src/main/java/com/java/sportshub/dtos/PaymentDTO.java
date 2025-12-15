@@ -16,6 +16,9 @@ public class PaymentDTO {
   private Double amount;
   private String paymentMethod;
   private String paymentStatus;
+
+  private String orderStatus;
+
   private String transactionId;
   private LocalDateTime paymentDate;
   private String notes;
@@ -26,6 +29,7 @@ public class PaymentDTO {
 
   public PaymentDTO(Payment payment) {
     this.id = payment.getId();
+    this.orderStatus = payment.getOrderStatus() != null ? payment.getOrderStatus() : null;
     this.cartId = payment.getCart() != null ? payment.getCart().getId() : null;
     this.userId = payment.getUser() != null ? payment.getUser().getId() : null;
     this.cart = payment.getCart() != null ? new CartDTO(payment.getCart()) : null;

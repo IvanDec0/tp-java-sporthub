@@ -12,6 +12,7 @@ public class PaymentMapper {
   public static Payment toEntity(PaymentDTO dto) {
     Payment payment = new Payment();
     payment.setAmount(dto.getAmount());
+    payment.setOrderStatus(dto.getOrderStatus());
     payment.setPaymentMethod(dto.getPaymentMethod());
     payment.setPaymentStatus(dto.getPaymentStatus());
     payment.setTransactionId(dto.getTransactionId());

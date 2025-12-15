@@ -198,4 +198,13 @@ public class PaymentController {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
   }
+
+  @PutMapping("/{id}/status")
+  public ResponseEntity<PaymentDTO> updateOrderStatus(
+          @PathVariable("id") Long id,
+          @RequestBody Map<String, String> body) {
+    String newStatus = body.get("status");
+    Payment updatedPayment = paymentService.updateOrderStatus(id, newStatus);
+    return ResponseEntity.ok(PaymentMapper.toDTO(updatedPayment));
+  }
 }

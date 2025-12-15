@@ -28,6 +28,10 @@ public class Payment extends Generic {
   @Column(name = "payment_status")
   private String paymentStatus; // Pending, Completed, Failed, Refunded
 
+
+  @Column(name = "order_status")
+  private String orderStatus; // "Pendiente", "En preparación", "Listo para retirar", "Entregado"
+
   @Column(name = "transaction_id")
   private String transactionId;
 
