@@ -1,5 +1,13 @@
 package com.java.sportshub.services;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.java.sportshub.daos.InventoryDAO;
 import com.java.sportshub.daos.RentalReservationDAO;
 import com.java.sportshub.dtos.RentalAvailabilityDTO;
@@ -8,13 +16,6 @@ import com.java.sportshub.exceptions.RentalNotAvailableException;
 import com.java.sportshub.exceptions.ResourceNotFoundException;
 import com.java.sportshub.models.Inventory;
 import com.java.sportshub.models.RentalReservation;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 @Service
 public class RentalService {
@@ -31,18 +32,18 @@ public class RentalService {
                 .orElseThrow(() -> new ResourceNotFoundException("Inventory", "id", inventoryId));
 
         if (!"alquiler".equalsIgnoreCase(inventory.getTipo())) {
-            throw new IllegalArgumentException("Inventory is not of type 'alquiler'");
+            throw new IllegalArgumentException("El inventario no es de tipo 'alquiler'");
         }
 
         validateRentalDates(inventory, startDate, endDate);
 
         Long availableQuantity = calculateAvailableQuantity(inventoryId, startDate, endDate,
                 inventory.getQuantity().longValue());
-    boolean isAvailable = availableQuantity >= requestedQuantity;
+        boolean isAvailable = availableQuantity >= requestedQuantity;
 
-    String message = isAvailable
-        ? "Available for rental"
-        : String.format("Only %d units are available for the requested dates", availableQuantity);
+        String message = isAvailable
+                ? "Disponible para alquiler"
+                : String.format("Solo %d unidades están disponibles para las fechas solicitadas", availableQuantity);
 
         return new RentalAvailabilityDTO(
                 inventoryId,
@@ -58,33 +59,33 @@ public class RentalService {
         LocalDate today = LocalDate.now();
 
         if (startDate.isBefore(today)) {
-            throw new InvalidRentalPeriodException("Start date cannot be before today");
+            throw new InvalidRentalPeriodException("La fecha de inicio no puede ser anterior a hoy");
         }
 
         if (endDate.isBefore(startDate) || endDate.isEqual(startDate)) {
-            throw new InvalidRentalPeriodException("End date must be after start date");
+            throw new InvalidRentalPeriodException("La fecha de fin no puede ser anterior a la fecha de inicio");
         }
 
         if (inventory.getAvailableFrom() != null && startDate.isBefore(inventory.getAvailableFrom())) {
             throw new InvalidRentalPeriodException(
-                    String.format("Product is only available from %s", inventory.getAvailableFrom()));
+                    String.format("El producto solo está disponible desde %s", inventory.getAvailableFrom()));
         }
 
         if (inventory.getAvailableUntil() != null && endDate.isAfter(inventory.getAvailableUntil())) {
             throw new InvalidRentalPeriodException(
-                    String.format("Product is only available until %s", inventory.getAvailableUntil()));
+                    String.format("El producto solo está disponible hasta %s", inventory.getAvailableUntil()));
         }
 
         long rentalDays = ChronoUnit.DAYS.between(startDate, endDate);
 
         if (inventory.getMinRentalDays() != null && rentalDays < inventory.getMinRentalDays()) {
             throw new InvalidRentalPeriodException(
-                    String.format("Minimum rental period is %d days", inventory.getMinRentalDays()));
+                    String.format("El período mínimo de alquiler es de %d días", inventory.getMinRentalDays()));
         }
 
         if (inventory.getMaxRentalDays() != null && rentalDays > inventory.getMaxRentalDays()) {
             throw new InvalidRentalPeriodException(
-                    String.format("Maximum rental period is %d days", inventory.getMaxRentalDays()));
+                    String.format("El período máximo de alquiler es de %d días", inventory.getMaxRentalDays()));
         }
     }
 
@@ -144,7 +145,7 @@ public class RentalService {
                 .orElseThrow(() -> new ResourceNotFoundException("RentalReservation", "id", reservationId));
 
         if ("COMPLETED".equals(reservation.getStatus()) || "CANCELLED".equals(reservation.getStatus())) {
-            throw new IllegalStateException("Cannot cancel a reservation that is completed or already cancelled");
+            throw new IllegalStateException("No se puede cancelar una reserva que ya está completada o cancelada");
         }
 
         reservation.setStatus("CANCELLED");
@@ -158,7 +159,7 @@ public class RentalService {
                 .orElseThrow(() -> new ResourceNotFoundException("RentalReservation", "id", reservationId));
 
         if (!"PENDING".equals(reservation.getStatus())) {
-            throw new IllegalStateException("Only reservations in PENDING status can be confirmed");
+            throw new IllegalStateException("Solo se pueden confirmar reservas en estado PENDING");
         }
 
         // Re-validar disponibilidad antes de confirmar
@@ -169,7 +170,7 @@ public class RentalService {
                 reservation.getQuantity());
 
         if (!availability.getIsAvailable()) {
-            throw new RentalNotAvailableException("Inventory is no longer available for these dates");
+            throw new RentalNotAvailableException("El inventario no está disponible para estas fechas");
         }
 
         reservation.setStatus("CONFIRMED");
@@ -182,7 +183,7 @@ public class RentalService {
                 .orElseThrow(() -> new ResourceNotFoundException("RentalReservation", "id", reservationId));
 
         if (!"CONFIRMED".equals(reservation.getStatus())) {
-            throw new IllegalStateException("Only confirmed reservations can be activated");
+            throw new IllegalStateException("Solo se pueden activar reservas confirmadas");
         }
 
         reservation.setStatus("ACTIVE");
@@ -195,7 +196,7 @@ public class RentalService {
                 .orElseThrow(() -> new ResourceNotFoundException("RentalReservation", "id", reservationId));
 
         if (!"ACTIVE".equals(reservation.getStatus())) {
-            throw new IllegalStateException("Only active reservations can be completed");
+            throw new IllegalStateException("Solo se pueden completar reservas activas");
         }
 
         reservation.setStatus("COMPLETED");
@@ -211,12 +212,12 @@ public class RentalService {
                 .orElseThrow(() -> new ResourceNotFoundException("Inventory", "id", inventoryId));
 
         if (!"venta".equalsIgnoreCase(inventory.getTipo())) {
-            throw new IllegalArgumentException("This inventory is not for sale");
+            throw new IllegalArgumentException("Este inventario no es para venta");
         }
 
         if (inventory.getQuantity() < quantity) {
             throw new RentalNotAvailableException(
-                    String.format("Insufficient stock. Available: %d, Requested: %d",
+                    String.format("Stock insuficiente. Disponible: %d, Requerido: %d",
                             inventory.getQuantity(), quantity));
         }
     }

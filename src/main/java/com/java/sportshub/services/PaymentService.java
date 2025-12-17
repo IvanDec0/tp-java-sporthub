@@ -15,6 +15,7 @@ import com.java.sportshub.daos.CartItemDAO;
 import com.java.sportshub.daos.InventoryDAO;
 import com.java.sportshub.daos.PaymentDAO;
 import com.java.sportshub.daos.RentalReservationDAO;
+import com.java.sportshub.dtos.StockValidationDTO;
 import com.java.sportshub.dtos.StripeChargeDTO;
 import com.java.sportshub.dtos.StripePaymentIntentDTO;
 import com.java.sportshub.dtos.StripeRefundDTO;
@@ -55,6 +56,9 @@ public class PaymentService {
   @Autowired
   private EmailService emailService;
 
+  @Autowired
+  private StockValidationService stockValidationService;
+
   public List<Payment> getAllPayments() {
     return paymentDAO.findAll();
   }
@@ -83,18 +87,24 @@ public class PaymentService {
         .orElseThrow(() -> new ResourceNotFoundException("Cart", "id", payment.getCart().getId()));
 
     if (!cart.getStatus().equals("Active")) {
-      throw new BusinessRuleException("Cart must be active to create a payment");
+      throw new BusinessRuleException("El carrito debe estar activo para crear un pago");
     }
 
     if (cart.getItems() == null || cart.getItems().isEmpty()) {
-      throw new BusinessRuleException("Cart must have items to create a payment");
+      throw new BusinessRuleException("El carrito debe tener productos para crear un pago");
+    }
+
+    // VALIDAR STOCK ANTES DE CREAR EL PAYMENT INTENT
+    StockValidationDTO stockValidation = stockValidationService.validateCartStock(cart.getId());
+    if (!stockValidation.getIsValid()) {
+      throw new BusinessRuleException("Validación de stock fallida: " + stockValidation.getMessage());
     }
 
     // Recompute cart total considering coupons
     double computedTotal = pricingService.computeCartTotal(cart.getId());
     if (Math.abs(payment.getAmount() - computedTotal) > 0.001) {
       throw new BusinessRuleException(
-          String.format("Payment amount (%.2f) must match computed cart total (%.2f)",
+          String.format("El monto del pago (%.2f) debe coincidir con el total calculado del carrito (%.2f)",
               payment.getAmount(), computedTotal));
     }
 
@@ -135,25 +145,25 @@ public class PaymentService {
     Payment payment = getPaymentById(paymentId);
 
     if (payment.getPaymentStatus().equals("Completed")) {
-      throw new InvalidOperationException("Payment has already been completed");
+      throw new InvalidOperationException("El pago ya ha sido completado");
     }
 
     if (payment.getPaymentStatus().equals("Refunded")) {
-      throw new InvalidOperationException("Cannot process a refunded payment");
+      throw new InvalidOperationException("No se puede procesar un pago que ya fue reembolsado");
     }
 
     boolean requiresStripeProcessing = isStripePaymentMethod(payment.getPaymentMethod());
 
     if (requiresStripeProcessing) {
       if (payment.getStripePaymentIntentId() == null) {
-        throw new BusinessRuleException("Payment Intent ID is missing for card payment");
+        throw new BusinessRuleException("Falta el ID de Payment Intent para el pago con tarjeta");
       }
 
       StripePaymentIntentDTO paymentIntent = stripeService.getPaymentIntent(payment.getStripePaymentIntentId());
 
       if (!"succeeded".equals(paymentIntent.getStatus())) {
         throw new BusinessRuleException(
-                "Payment has not been completed in Stripe. Current status: " + paymentIntent.getStatus());
+            "El pago no ha sido completado en Stripe. Estado actual: " + paymentIntent.getStatus());
       }
 
       StripeChargeDTO charge = stripeService.getChargeFromPaymentIntent(payment.getStripePaymentIntentId());
@@ -162,24 +172,33 @@ public class PaymentService {
 
     Cart cart = payment.getCart();
     if (cart != null && cart.getItems() != null) {
+      // Re-validar stock antes de procesar (por si cambió entre creación y
+      // confirmación)
+      StockValidationDTO stockValidation = stockValidationService.validateCartStock(cart.getId());
+      if (!stockValidation.getIsValid()) {
+        throw new BusinessRuleException("Validación de stock fallida: " + stockValidation.getMessage());
+      }
+
       for (CartItem item : cart.getItems()) {
         Inventory inventory = inventoryDAO.findById(item.getInventory().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Inventory", "id", item.getInventory().getId()));
+            .orElseThrow(() -> new ResourceNotFoundException("Inventory", "id", item.getInventory().getId()));
 
         if ("venta".equalsIgnoreCase(inventory.getTipo())) {
+          // Para VENTA: descontar stock físico
           int requestedQty = item.getQuantity();
           int availableStock = inventory.getQuantity();
 
           if (availableStock < requestedQty) {
-
             throw new BusinessRuleException(
-                    "Stock insuficiente para el producto: " + inventory.getProduct().getName() +
-                            ". Disponible: " + availableStock + ", Solicitado: " + requestedQty);
+                "Stock insuficiente para el producto: " + inventory.getProduct().getName() +
+                    ". Disponible: " + availableStock + ", Solicitado: " + requestedQty);
           }
-
 
           inventory.setQuantity(availableStock - requestedQty);
           inventoryDAO.save(inventory);
+        } else if ("alquiler".equalsIgnoreCase(inventory.getTipo())) {
+          // Para ALQUILER: crear RentalReservation confirmada
+          createRentalReservationForCartItem(item, inventory, payment.getUser());
         }
       }
     }
@@ -189,7 +208,34 @@ public class PaymentService {
     payment.setPaymentDate(LocalDateTime.now());
 
     paymentDAO.save(payment);
+
+    // Completar el carrito después del pago exitoso
+    if (cart != null) {
+      cart.setStatus("Completed");
+      cartDAO.save(cart);
+    }
+
     return payment;
+  }
+
+  /**
+   * Crea una reserva de alquiler para un item del carrito después del pago
+   * exitoso.
+   */
+  private void createRentalReservationForCartItem(CartItem item, Inventory inventory,
+      com.java.sportshub.models.User user) {
+    RentalReservation reservation = new RentalReservation();
+    reservation.setInventory(inventory);
+    reservation.setCartItem(item);
+    reservation.setStartDate(item.getStartDate());
+    reservation.setEndDate(item.getEstimatedEndDate());
+    reservation.setQuantity(item.getQuantity());
+    reservation.setStatus("CONFIRMED"); // Confirmada porque el pago ya se completó
+    reservation.setTotalPrice(item.getSubtotal());
+    reservation.setUser(user);
+    reservation.setIsActive(true);
+
+    rentalReservationDAO.save(reservation);
   }
 
   public boolean isPaymentCompleted(Long cartId) {
@@ -201,16 +247,16 @@ public class PaymentService {
     Payment payment = paymentDAO.findByCartId(cartId);
 
     if (payment == null) {
-      throw new BusinessRuleException("No payment found for cart #" + cartId);
+      throw new BusinessRuleException("No se encontró pago para el carrito #" + cartId);
     }
 
     if (!"Completed".equals(payment.getPaymentStatus())) {
       throw new BusinessRuleException(
-          "Payment must be completed before proceeding. Current status: " + payment.getPaymentStatus());
+          "El pago debe ser completado antes de proceder. Estado actual: " + payment.getPaymentStatus());
     }
 
     if (isStripePaymentMethod(payment.getPaymentMethod()) && payment.getStripeChargeId() == null) {
-      throw new BusinessRuleException("Payment is marked as completed but has no Stripe charge ID");
+      throw new BusinessRuleException("El pago está marcado como completado pero no tiene ID de cargo en Stripe");
     }
   }
 
@@ -219,7 +265,7 @@ public class PaymentService {
     Payment payment = getPaymentById(id);
 
     if (payment.getPaymentStatus().equals("Completed")) {
-      throw new InvalidOperationException("Cannot update a completed payment");
+      throw new InvalidOperationException("No se puede actualizar un pago completado");
     }
 
     payment.setAmount(paymentDetails.getAmount());
@@ -236,18 +282,18 @@ public class PaymentService {
     Payment payment = getPaymentById(id);
 
     if (!payment.getPaymentStatus().equals("Completed")) {
-      throw new InvalidOperationException("Can only refund completed payments");
+      throw new InvalidOperationException("Solo se pueden reembolsar pagos completados");
     }
 
     if (payment.getPaymentStatus().equals("Refunded")) {
-      throw new InvalidOperationException("Payment has already been refunded");
+      throw new InvalidOperationException("El pago ya ha sido reembolsado");
     }
 
     boolean requiresStripeProcessing = isStripePaymentMethod(payment.getPaymentMethod());
 
     if (requiresStripeProcessing) {
       if (payment.getStripeChargeId() == null) {
-        throw new BusinessRuleException("Cannot refund: Stripe charge ID is missing");
+        throw new BusinessRuleException("No se puede reembolsar: falta el ID de cargo de Stripe");
       }
 
       // Crear reembolso en Stripe

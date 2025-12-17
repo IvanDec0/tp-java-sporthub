@@ -40,14 +40,20 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
       return true;
     }
 
+    // Permitir GET en /api/reviews sin autenticación (lectura pública)
+    String requestPath = request.getRequestURI();
+    if (requestPath != null && requestPath.startsWith("/api/reviews") && HttpMethod.GET.matches(request.getMethod())) {
+      return true;
+    }
+
     String token = resolveToken(request);
 
     if (!StringUtils.hasText(token)) {
-      throw new UnauthorizedException("Missing authentication token");
+      throw new UnauthorizedException("Falta el token de autenticación");
     }
 
     if (!jwtUtil.validateToken(token)) {
-      throw new UnauthorizedException("Invalid authentication token");
+      throw new UnauthorizedException("Token de autenticación inválido");
     }
 
     String userIdPayload = jwtUtil.extractUserId(token);
@@ -56,13 +62,13 @@ public class TokenValidationInterceptor implements HandlerInterceptor {
     try {
       userId = Long.parseLong(userIdPayload);
     } catch (NumberFormatException ex) {
-      throw new UnauthorizedException("Invalid token payload");
+      throw new UnauthorizedException("Payload del token inválido");
     }
 
     User user = userService.getUserById(userId);
 
     if (Boolean.FALSE.equals(user.getIsActive())) {
-      throw new UnauthorizedException("User is inactive");
+      throw new UnauthorizedException("El usuario está inactivo");
     }
 
     request.setAttribute(AUTHENTICATED_USER_ATTR, user);

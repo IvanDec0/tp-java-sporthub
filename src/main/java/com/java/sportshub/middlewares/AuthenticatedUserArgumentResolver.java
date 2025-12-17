@@ -32,7 +32,7 @@ public class AuthenticatedUserArgumentResolver implements HandlerMethodArgumentR
     Object attribute = request.getAttribute(TokenValidationInterceptor.AUTHENTICATED_USER_ATTR);
 
     if (!(attribute instanceof User user)) {
-      throw new UnauthorizedException("Authenticated user details are not available");
+      throw new UnauthorizedException("Los detalles del usuario autenticado no están disponibles");
     }
 
     return user;

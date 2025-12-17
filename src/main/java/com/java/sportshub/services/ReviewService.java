@@ -6,9 +6,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.java.sportshub.daos.InventoryDAO;
+import com.java.sportshub.daos.ProductDAO;
 import com.java.sportshub.daos.ReviewDAO;
+import com.java.sportshub.daos.StoreDAO;
 import com.java.sportshub.exceptions.ResourceNotFoundException;
 import com.java.sportshub.exceptions.UnauthorizedException;
+import com.java.sportshub.exceptions.ValidationException;
 import com.java.sportshub.models.Review;
 import com.java.sportshub.models.User;
 
@@ -17,6 +21,15 @@ public class ReviewService {
 
   @Autowired
   private ReviewDAO reviewDAO;
+
+  @Autowired
+  private ProductDAO productDAO;
+
+  @Autowired
+  private StoreDAO storeDAO;
+
+  @Autowired
+  private InventoryDAO inventoryDAO;
 
   public List<Review> getAllReviews() {
     return reviewDAO.findAll();
@@ -53,7 +66,38 @@ public class ReviewService {
     // TODO: Evitar múltiples reseñas del mismo usuario para el mismo producto
 
     if (review.getRating() < 1 || review.getRating() > 5) {
-      throw new IllegalArgumentException("Rating must be between 1 and 5");
+      throw new IllegalArgumentException("El rating debe estar entre 1 y 5");
+    }
+
+    // Validar que el producto esté presente
+    if (review.getProduct() == null || review.getProduct().getId() == null) {
+      throw new ValidationException("productId", "Se requiere un ID de producto para crear una reseña");
+    }
+
+    // Cargar el producto completo para validar que existe
+    var product = productDAO.findById(review.getProduct().getId())
+        .orElseThrow(() -> new ResourceNotFoundException("Product", "id", review.getProduct().getId()));
+    review.setProduct(product);
+
+    // Si no se proporcionó storeId, intentar obtenerlo del primer inventario del producto
+    if (review.getStore() == null || review.getStore().getId() == null) {
+      var inventories = inventoryDAO.findByProductId(product.getId());
+      if (!inventories.isEmpty()) {
+        var firstInventory = inventories.get(0);
+        if (firstInventory.getStore() != null) {
+          review.setStore(firstInventory.getStore());
+        }
+      }
+    } else {
+      // Validar que la tienda existe
+      var store = storeDAO.findById(review.getStore().getId())
+          .orElseThrow(() -> new ResourceNotFoundException("Store", "id", review.getStore().getId()));
+      review.setStore(store);
+    }
+
+    // Validar que se haya asignado una tienda
+    if (review.getStore() == null || review.getStore().getId() == null) {
+      throw new ValidationException("storeId", "No se pudo determinar la tienda. Por favor, proporcione un storeId.");
     }
 
     review.setUser(user);
@@ -70,7 +114,7 @@ public class ReviewService {
 
     if (reviewDetails.getRating() != null) {
       if (reviewDetails.getRating() < 1 || reviewDetails.getRating() > 5) {
-        throw new IllegalArgumentException("Rating must be between 1 and 5");
+        throw new IllegalArgumentException("El rating debe estar entre 1 y 5");
       }
       review.setRating(reviewDetails.getRating());
     }

@@ -97,7 +97,7 @@ public class CartItemService {
 
     // Also validate cart if changed
     if (cartItem.getCart() == null || cartItem.getCart().getId() == null) {
-      throw new ValidationException("cart", "Cart must be specified");
+      throw new ValidationException("cart", "Se debe especificar un carrito");
     }
     Cart cart = resolveCart(cartItem);
     cartItem.setCart(cart);
@@ -143,7 +143,7 @@ public class CartItemService {
 
   private void validateCartItemData(CartItem cartItem, Inventory inventory) {
     if (cartItem.getQuantity() == null || cartItem.getQuantity() <= 0) {
-      throw new ValidationException("quantity", "Quantity must be greater than zero");
+      throw new ValidationException("quantity", "La cantidad debe ser mayor a cero");
     }
 
     if (isRental(inventory)) {
@@ -158,7 +158,7 @@ public class CartItemService {
     LocalDate endDate = cartItem.getEstimatedEndDate();
 
     if (startDate == null || endDate == null) {
-      throw new ValidationException("rentalDates", "Start date and estimated end date are required for rentals");
+      throw new ValidationException("rentalDates", "Se requieren fecha de inicio y fecha de fin estimada para alquileres");
     }
 
     RentalAvailabilityDTO availability = rentalService.checkRentalAvailability(
@@ -174,7 +174,7 @@ public class CartItemService {
 
   private Inventory resolveInventory(CartItem cartItem) {
     if (cartItem.getInventory() == null || cartItem.getInventory().getId() == null) {
-      throw new ValidationException("inventory", "Inventory with a valid id is required");
+      throw new ValidationException("inventory", "Se requiere un inventario con un ID válido");
     }
 
     Inventory inventory = inventoryDAO.findById(cartItem.getInventory().getId())
@@ -186,13 +186,13 @@ public class CartItemService {
 
   private Cart resolveCart(CartItem cartItem) {
     if (cartItem.getCart() == null || cartItem.getCart().getId() == null) {
-      throw new ValidationException("cart", "Cart with a valid id is required");
+      throw new ValidationException("cart", "Se requiere un carrito con un ID válido");
     }
 
     Cart cart = cartDAO.findById(cartItem.getCart().getId())
         .orElseThrow(() -> new ResourceNotFoundException("Cart", "id", cartItem.getCart().getId()));
     if (cart.getIsActive() == null || !cart.getIsActive()) {
-      throw new ValidationException("cart", "Cart must be active");
+      throw new ValidationException("cart", "El carrito debe estar activo");
     }
     cartItem.setCart(cart);
     return cart;
@@ -219,7 +219,7 @@ public class CartItemService {
     }
 
     if (userId == null) {
-      throw new ValidationException("cart.userId", "User id is required to create a cart when cart id is not provided");
+      throw new ValidationException("cart.userId", "Se requiere el ID de usuario para crear un carrito cuando no se proporciona el ID del carrito");
     }
 
     // Try to find active cart for user
@@ -228,7 +228,7 @@ public class CartItemService {
       if (existing != null) {
         // If store mismatch, don't create a second active cart - return error
         if (storeId != null && existing.getStore() != null && !storeId.equals(existing.getStore().getId())) {
-          throw new ValidationException("cart", "User has an active cart for a different store");
+          throw new ValidationException("cart", "El usuario ya tiene un carrito activo para una tienda diferente");
         }
         return existing;
       }
@@ -238,7 +238,7 @@ public class CartItemService {
 
     // If not found or not active, create a new cart
     if (storeId == null) {
-      throw new ValidationException("storeId", "Store id is required to create a new cart");
+      throw new ValidationException("storeId", "Se requiere el ID de la tienda para crear un nuevo carrito");
     }
     Cart newCart = cartService.createCart(new Cart(), userId, storeId);
     return newCart;

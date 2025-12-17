@@ -37,19 +37,19 @@ public class RoleValidationInterceptor implements HandlerInterceptor {
     String[] allowedRoles = requiredRoles.value();
 
     if (allowedRoles.length == 0) {
-      throw new UnauthorizedException("No roles are authorized for this endpoint");
+      throw new UnauthorizedException("No hay roles autorizados para este endpoint");
     }
 
     Object attribute = request.getAttribute(TokenValidationInterceptor.AUTHENTICATED_USER_ATTR);
 
     if (!(attribute instanceof User user)) {
-      throw new UnauthorizedException("Missing authenticated user information");
+      throw new UnauthorizedException("Falta la información del usuario autenticado");
     }
 
     Role userRole = user.getRole();
 
     if (userRole == null || !StringUtils.hasText(userRole.getRoleName())) {
-      throw new UnauthorizedException("User has no role assigned");
+      throw new UnauthorizedException("El usuario no tiene un rol asignado");
     }
 
     boolean hasAccess = Arrays.stream(allowedRoles)
@@ -57,7 +57,7 @@ public class RoleValidationInterceptor implements HandlerInterceptor {
         .anyMatch(roleName -> roleName.equalsIgnoreCase(userRole.getRoleName()));
 
     if (!hasAccess) {
-      throw new UnauthorizedException("User role is not authorized for this operation");
+      throw new UnauthorizedException("El rol del usuario no está autorizado para esta operación");
     }
 
     return true;

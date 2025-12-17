@@ -17,9 +17,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.java.sportshub.dtos.CartDTO;
+import com.java.sportshub.dtos.StockValidationDTO;
 import com.java.sportshub.mappers.CartMapper;
 import com.java.sportshub.models.Cart;
 import com.java.sportshub.services.CartService;
+import com.java.sportshub.services.StockValidationService;
 
 @RestController
 @RequestMapping("/api/carts")
@@ -27,6 +29,9 @@ public class CartController {
 
   @Autowired
   private CartService cartService;
+
+  @Autowired
+  private StockValidationService stockValidationService;
 
   @GetMapping
   public ResponseEntity<List<CartDTO>> getAllCarts() {
@@ -98,6 +103,23 @@ public class CartController {
   public ResponseEntity<CartDTO> removeCoupon(@PathVariable("id") Long id) {
     Cart cart = cartService.removeCartCoupon(id);
     return ResponseEntity.ok(CartMapper.toDTO(cart));
+  }
+
+  /**
+   * Valida el stock de todos los items del carrito antes de proceder al pago.
+   * Para items de VENTA: valida stock físico disponible.
+   * Para items de ALQUILER: valida disponibilidad en las fechas indicadas.
+   */
+  @PostMapping("/{id}/validate-stock")
+  public ResponseEntity<StockValidationDTO> validateCartStock(@PathVariable("id") Long id) {
+    StockValidationDTO validation = stockValidationService.validateCartStock(id);
+    
+    if (validation.getIsValid()) {
+      return ResponseEntity.ok(validation);
+    } else {
+      // Retornamos 200 pero con isValid=false para que el frontend maneje el error
+      return ResponseEntity.ok(validation);
+    }
   }
 
   @DeleteMapping("/{id}")

@@ -80,7 +80,7 @@ public class CartService {
 
         Optional<Cart> activeCart = cartDAO.findActiveCartByUserId(userId);
         if (activeCart.isPresent()) {
-            throw new IllegalArgumentException("User already has an active cart");
+            throw new IllegalArgumentException("El usuario ya tiene un carrito activo");
         }
 
         cart.setUser(user);
@@ -114,7 +114,7 @@ public class CartService {
 
         List<CartItem> items = cartItemDAO.findActiveItemsByCartId(cart.getId());
         if (items.isEmpty()) {
-            throw new IllegalArgumentException("Cart has no items");
+            throw new IllegalArgumentException("El carrito no tiene productos");
         }
 
         // Validar que exista un pago completado asociado a este carrito
@@ -155,11 +155,11 @@ public class CartService {
                 .orElseThrow(() -> new ResourceNotFoundException("Coupon", "code", code));
 
         if (coupon.getIsActive() == null || !coupon.getIsActive()) {
-            throw new IllegalArgumentException("Coupon is not active");
+            throw new IllegalArgumentException("El cupón no está activo");
         }
         if (coupon.getExpiryDate() != null
                 && coupon.getExpiryDate().toLocalDate().isBefore(java.time.LocalDate.now())) {
-            throw new IllegalArgumentException("Coupon has expired");
+            throw new IllegalArgumentException("El cupón ha expirado");
         }
 
         cart.setAppliedCoupon(coupon);

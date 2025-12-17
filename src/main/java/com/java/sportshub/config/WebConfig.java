@@ -43,18 +43,16 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         // Lista de rutas públicas
+        // Nota: /api/reviews/** no está aquí porque solo los GET son públicos
+        // Los POST/PUT/DELETE requieren autenticación (manejado en
+        // TokenValidationInterceptor)
         List<String> publicRoutes = List.of(
                 "/api/auth/login",
                 "/api/auth/register",
                 "/api/products/**",
                 "/api/categories/**",
                 "/api/stores/**",
-                "/api/inventories/**",
-                "/api/reviews/**"
-
-
-
-        );
+                "/api/inventories/**");
 
         registry.addInterceptor(tokenValidationInterceptor)
                 .addPathPatterns("/api/**")
